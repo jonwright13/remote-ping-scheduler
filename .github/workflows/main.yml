@@ -1,0 +1,27 @@
+name: Daily DB Status Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6:00 AM UTC
+  workflow_dispatch:     # Allows manual trigger
+
+jobs:
+  check_all_dbs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary
+
+      - name: Run DB Status Check
+        env:
+          DATABASE_URLS: ${{ secrets.DATABASE_URLS }}
+        run: python main.py
