@@ -2,12 +2,14 @@ name: Daily DB Status Check
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Every day at 6:00 AM UTC
-  workflow_dispatch:     # Allows manual trigger
+    - cron: '0 6 * * *'     # Daily at 06:00 UTC
+  workflow_dispatch:
 
 jobs:
   check_all_dbs:
     runs-on: ubuntu-latest
+    env:
+      RUN_TIMESTAMP: ${{ github.run_id }}  # Unique ID for filename
 
     steps:
       - name: Checkout repo
@@ -24,4 +26,18 @@ jobs:
       - name: Run DB Status Check
         env:
           DATABASE_URLS: ${{ secrets.DATABASE_URLS }}
-        run: python main.py
+        run: python check_db_status.py
+
+      - name: Upload log
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-status-log-${{ env.RUN_TIMESTAMP }}
+          path: db_status_${{ env.RUN_TIMESTAMP }}.log
+
+  notify_on_failure:
+    if: failure()
+    needs: check_all_dbs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify via GitHub email
+        run: echo "❌ One or more databases are unreachable in run ${{ github.run_id }}."

@@ -1,9 +1,12 @@
 import psycopg2
 import os, json
+from datetime import datetime
 
 
-# Get the string value from env
+# Load environment variables
 db_urls_raw = os.environ.get("DATABASE_URLS", "[]")
+timestamp = os.environ.get("RUN_TIMESTAMP", datetime.utcnow().strftime("%Y%m%d_%H%M%S"))
+log_file = f"db_status_{timestamp}.log"
 
 # Convert the json list to a list
 try:
@@ -14,11 +17,19 @@ except json.JSONDecodeError:
     db_urls = []
 
 
-for url in db_urls:
+success = True
+with open(log_file, "w") as f:
+    f.write(f"Database Status Check - {timestamp}\n")
+    f.write("=" * 40 + "\n")
+    for url in db_urls:
+        try:
+            conn = psycopg2.connect(url)
+            conn.close()
+            line = f"✅ SUCCESS: {url}"
+        except Exception as e:
+            success = False
+            line = f"❌ FAIL: {url} — {e}"
+        print(line)
+        f.write(line + "\n")
 
-    try:
-        conn = psycopg2.connect(url)
-        conn.close()
-        print("✅ Database is reachable.")
-    except Exception as e:
-        print(f"❌ Failed to connect to the database: {e}")
+exit(0 if success else 1)
