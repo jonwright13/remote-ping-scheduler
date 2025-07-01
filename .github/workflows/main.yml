@@ -26,7 +26,7 @@ jobs:
       - name: Run DB Status Check
         env:
           DATABASE_URLS: ${{ secrets.DATABASE_URLS }}
-        run: python check_db_status.py
+        run: python main.py
 
       - name: Upload log
         uses: actions/upload-artifact@v4
