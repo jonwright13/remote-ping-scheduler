@@ -1,11 +1,13 @@
 import psycopg2
 import os, json
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # Load environment variables
 db_urls_raw = os.environ.get("DATABASE_URLS", "[]")
-timestamp = os.environ.get("RUN_TIMESTAMP", datetime.utcnow().strftime("%Y%m%d_%H%M%S"))
+timestamp = os.environ.get(
+    "RUN_TIMESTAMP", datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+)
 log_file = f"db_status_{timestamp}.log"
 
 # Convert the json list to a list
@@ -24,11 +26,15 @@ with open(log_file, "w") as f:
     for url in db_urls:
         try:
             conn = psycopg2.connect(url)
+            cur = conn.cursor()
+            cur.execute("SELECT 1;")  # 🟢 Ensure the DB is queried
+            cur.fetchone()
+            cur.close()
             conn.close()
-            line = f"✅ SUCCESS: {url}"
+            line = f"SUCCESS: {url}"
         except Exception as e:
             success = False
-            line = f"❌ FAIL: {url} — {e}"
+            line = f"FAIL: {url} — {e}"
         print(line)
         f.write(line + "\n")
 
