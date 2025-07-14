@@ -27,7 +27,7 @@ jobs:
       - name: Deploy Cloud Function
         run: |
           gcloud functions deploy ${{ secrets.GCP_FUNCTION_NAME }} \
-            --gen2 \
+            --gen1 \
             --runtime python310 \
             --trigger-topic=db-status-schedule \
             --entry-point=main \
