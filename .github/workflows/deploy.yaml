@@ -1,0 +1,32 @@
+name: Deploy to Google Cloud Functions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to GCF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Deploy Cloud Function
+        run: |
+          gcloud functions deploy ${{ secrets.GCP_FUNCTION_NAME }} \
+            --runtime python310 \
+            --trigger-topic=db-status-schedule \
+            --entry-point=main \
+            --source=. \
+            --region=${{ secrets.GCP_REGION }} \
+            --set-env-vars=DATABASE_URLS=${{ secrets.DATABASE_URLS }}
