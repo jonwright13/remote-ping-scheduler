@@ -7,36 +7,35 @@ log_fname = "db_status_{}.log"
 
 
 def decode_db_urls():
-    # ✅ Gen2 (or fallback) — DATABASE_URLS is a JSON string
-    json_string = os.environ.get("DATABASE_URLS")
-    if json_string:
-        try:
-            print("✅ Loaded DATABASE_URLS from secret or env var.")
-            return json.loads(json_string)
-        except Exception as e:
-            print("❌ Failed to parse DATABASE_URLS from env:", e)
+    running_in_gcf = os.environ.get("K_SERVICE") is not None
+
+    if running_in_gcf:
+        # ✅ GCF: Use env var
+        json_string = os.environ.get("DATABASE_URLS")
+        if json_string:
+            try:
+                print("✅ Loaded DATABASE_URLS from GCF environment.")
+                return json.loads(json_string)
+            except Exception as e:
+                print("❌ Failed to parse DATABASE_URLS in GCF:", e)
+                return []
+        else:
+            print("❌ DATABASE_URLS not set in GCF environment.")
             return []
 
-    # ✅ Local: fallback to DATABASE_URLS_JSON
-    json_string = os.environ.get("DATABASE_URLS_JSON")
-    if json_string:
+    else:
+        # ✅ Local: Use dbs.json file
         try:
-            print("✅ Loaded DATABASE_URLS from local env var.")
-            return json.loads(json_string)
+            project_root = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..")
+            )
+            dbs_file = os.path.join(project_root, "dbs.json")
+            with open(dbs_file, "r", encoding="utf-8") as f:
+                print("✅ Loaded DATABASE_URLS from local dbs.json file.")
+                return json.load(f)
         except Exception as e:
-            print("❌ Failed to parse DATABASE_URLS_JSON:", e)
+            print("❌ Failed to load dbs.json locally:", e)
             return []
-
-    # ✅ Fallback: dbs.json
-    try:
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        dbs_file = os.path.join(project_root, "dbs.json")
-        with open(dbs_file, "r", encoding="utf-8") as f:
-            print("✅ Loaded DATABASE_URLS from dbs.json file.")
-            return json.load(f)
-    except Exception as e:
-        print("❌ Failed to load DATABASE_URLS from dbs.json:", e)
-        return []
 
 
 def get_log_path(timestamp):
