@@ -6,6 +6,40 @@ from urllib.parse import urlparse, urlunparse
 log_fname = "db_status_{}.log"
 
 
+def decode_db_urls():
+    # ✅ GCF: Secret Manager mounts a file path to this env var
+    secret_path = os.environ.get("DATABASE_URLS")
+    if secret_path and os.path.isfile(secret_path):
+        try:
+            with open(secret_path, "r", encoding="utf-8") as f:
+                print("✅ Loaded DATABASE_URLS from Secret Manager file.")
+                return json.load(f)
+        except Exception as e:
+            print("❌ Failed to load DATABASE_URLS from file:", e)
+            return []
+
+    # ✅ Local: JSON string via env var
+    json_string = os.environ.get("DATABASE_URLS_JSON")
+    if json_string:
+        try:
+            print("✅ Loaded DATABASE_URLS from env var.")
+            return json.loads(json_string)
+        except Exception as e:
+            print("❌ Failed to parse DATABASE_URLS_JSON:", e)
+            return []
+
+    # ✅ Local fallback: dbs.json file in project root
+    try:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        dbs_file = os.path.join(project_root, "dbs.json")
+        with open(dbs_file, "r", encoding="utf-8") as f:
+            print("✅ Loaded DATABASE_URLS from dbs.json file.")
+            return json.load(f)
+    except Exception as e:
+        print("❌ Failed to load DATABASE_URLS from dbs.json:", e)
+        return []
+
+
 def get_log_path(timestamp):
     running_in_gcf = os.environ.get("K_SERVICE") is not None
     if running_in_gcf:
@@ -55,20 +89,15 @@ def check_db(url):
 
 
 def check_all_dbs():
-    db_urls_raw = os.environ.get("DATABASE_URLS", "[]")
+    db_urls = decode_db_urls()
     timestamp = os.environ.get(
         "RUN_TIMESTAMP", datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     )
     log_file = get_log_path(timestamp)
 
-    try:
-        db_urls = json.loads(db_urls_raw)
-        print("Parsed DB URLs:", len(db_urls))
-    except json.JSONDecodeError:
-        print("Invalid JSON in DATABASE_URLS")
-        db_urls = []
-
+    print("Parsed DB URLs:", len(db_urls))
     success = True
+
     with open(log_file, "w", encoding="utf-8") as f:
         f.write(f"Database Status Check - {timestamp}\n")
         f.write("=" * 40 + "\n")

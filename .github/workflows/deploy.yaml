@@ -33,3 +33,4 @@ jobs:
             --source=. \
             --region=${{ secrets.GCP_REGION }} \
             --set-env-vars=DATABASE_URLS=${{ secrets.DATABASE_URLS }}
+
