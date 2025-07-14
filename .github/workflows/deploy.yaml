@@ -32,5 +32,6 @@ jobs:
             --entry-point=main \
             --source=. \
             --region=${{ secrets.GCP_REGION }} \
-            --set-env-vars=DATABASE_URLS=${{ secrets.DATABASE_URLS }}
+            --set-secrets=DATABASE_URLS=DATABASE_URLS:latest
+
 
