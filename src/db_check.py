@@ -7,28 +7,27 @@ log_fname = "db_status_{}.log"
 
 
 def decode_db_urls():
-    # ✅ GCF: Secret Manager mounts a file path to this env var
-    secret_path = os.environ.get("DATABASE_URLS")
-    if secret_path and os.path.isfile(secret_path):
+    # ✅ Gen2 (or fallback) — DATABASE_URLS is a JSON string
+    json_string = os.environ.get("DATABASE_URLS")
+    if json_string:
         try:
-            with open(secret_path, "r", encoding="utf-8") as f:
-                print("✅ Loaded DATABASE_URLS from Secret Manager file.")
-                return json.load(f)
+            print("✅ Loaded DATABASE_URLS from secret or env var.")
+            return json.loads(json_string)
         except Exception as e:
-            print("❌ Failed to load DATABASE_URLS from file:", e)
+            print("❌ Failed to parse DATABASE_URLS from env:", e)
             return []
 
-    # ✅ Local: JSON string via env var
+    # ✅ Local: fallback to DATABASE_URLS_JSON
     json_string = os.environ.get("DATABASE_URLS_JSON")
     if json_string:
         try:
-            print("✅ Loaded DATABASE_URLS from env var.")
+            print("✅ Loaded DATABASE_URLS from local env var.")
             return json.loads(json_string)
         except Exception as e:
             print("❌ Failed to parse DATABASE_URLS_JSON:", e)
             return []
 
-    # ✅ Local fallback: dbs.json file in project root
+    # ✅ Fallback: dbs.json
     try:
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         dbs_file = os.path.join(project_root, "dbs.json")
